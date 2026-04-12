@@ -1,0 +1,12 @@
+xv6/*.o
+xv6/*.d
+xv6/*.asm
+xv6/*.sym
+xv6/fs.img
+xv6/xv6.img
+xv6/kernelmemfs
+xv6/initcode
+xv6/initcode.out
+xv6/mkfs
+xv6/*.log
+xv6/.gdbinit
