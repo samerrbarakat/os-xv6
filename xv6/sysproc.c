@@ -6,7 +6,45 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+int 
+sys_getsysinfo(void) 
+{
+	// wiring the argument using argptr 
+	sysinfo_t* st ; 
+	if (argptr(0,(void*)&st,sizeof(*st))<0) { 
+		return -1 ; } 
+  acquire(&tickslock) ; 
+  st->uptime  = ticks; 
+  release(&tickslock) ; 
 
+  st->free_memory = freememsize() ; 
+
+  getproccounts(st);
+return 0 ;
+} 
+
+
+extern int total_syscalls;
+extern int syscall_counter[];
+int sys_gettotalsyscalls(void){
+  return total_syscalls;
+}
+int sys_getsyscallcount(void){
+   int num;
+   if(argint(0, &num) < 0)
+    return -1;
+   return syscall_counter[num];}
+int sys_restrict_systemcall(void){
+  int num;
+  if (argint(0,&num)<0) return -1;
+  myproc()->blocked_systemcall=num;
+  return 0;
+} 
+int
+sys_getyear(void)
+{
+    return 1975;
+}
 
 int
 sys_fork(void)
@@ -90,27 +128,3 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
-
-// this syscall gets the following system
-// information: total number of process, 
-//free memory, system uptime (sice boot),
-// number of running, sleeping and 
-// zombie processes. 
-
-
-int 
-sys_getsysinfo(void) 
-{
-	// wiring the argument using argptr 
-	sysinfo_t* st ; 
-	if (argptr(0,(void*)&st,sizeof(*st))<0) { 
-		return -1 ; } 
-  acquire(&tickslock) ; 
-  st->uptime  = ticks; 
-  release(&tickslock) ; 
-
-  st->free_memory = freememsize() ; 
-
-  getproccounts(st);
-return 0 ;
-} 

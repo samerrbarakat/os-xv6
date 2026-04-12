@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "x86.h"
 #include "syscall.h"
+int total_syscalls=0;
 
 // User code makes a system call with INT T_SYSCALL.
 // System call number in %eax.
@@ -103,6 +104,10 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_getyear(void);
+extern int sys_gettotalsyscalls(void);
+extern int sys_getsyscallcount(void);
+extern int sys_restrict_systemcall(void);
 extern int sys_getsysinfo(void) ; 
 
 static int (*syscalls[])(void) = {
@@ -127,8 +132,14 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_getyear] sys_getyear,
+[SYS_gettotalsyscalls] sys_gettotalsyscalls,
+[SYS_getsyscallcount] sys_getsyscallcount,
+[SYS_restrict_systemcall] sys_restrict_systemcall,
 [SYS_getsysinfo] sys_getsysinfo, 
 };
+
+int syscall_counter[NELEM(syscalls)]={0};
 
 void
 syscall(void)
@@ -137,6 +148,14 @@ syscall(void)
   struct proc *curproc = myproc();
 
   num = curproc->tf->eax;
+  total_syscalls++;
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]){
+    syscall_counter[num]++;
+    if(num==curproc->blocked_systemcall){
+      curproc->tf->eax =-1;
+      return;
+    }
+}
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
   } else {

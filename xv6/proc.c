@@ -77,7 +77,6 @@ allocproc(void)
   char *sp;
 
   acquire(&ptable.lock);
-
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == UNUSED)
       goto found;
@@ -88,6 +87,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->blocked_systemcall=-1;
 
   release(&ptable.lock);
 
@@ -188,7 +188,7 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
-
+  np->blocked_systemcall=curproc->blocked_systemcall;
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
@@ -532,7 +532,6 @@ procdump(void)
     cprintf("\n");
   }
 }
-
 
 // Added this helper function 
 void getproccounts(sysinfo_t * info){
