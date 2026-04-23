@@ -108,8 +108,9 @@ extern int sys_getyear(void);
 extern int sys_gettotalsyscalls(void);
 extern int sys_getsyscallcount(void);
 extern int sys_restrict_systemcall(void);
-extern int sys_getsysinfo(void) ; 
-
+extern int sys_clone(void);
+extern int sys_join(void);
+extern int sys_getsysinfo(void);
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -136,7 +137,9 @@ static int (*syscalls[])(void) = {
 [SYS_gettotalsyscalls] sys_gettotalsyscalls,
 [SYS_getsyscallcount] sys_getsyscallcount,
 [SYS_restrict_systemcall] sys_restrict_systemcall,
-[SYS_getsysinfo] sys_getsysinfo, 
+[SYS_clone] sys_clone,
+[SYS_join] sys_join,
+[SYS_getsysinfo] sys_getsysinfo,
 };
 
 int syscall_counter[NELEM(syscalls)]={0};

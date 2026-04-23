@@ -93,7 +93,6 @@ kalloc(void)
     release(&kmem.lock);
   return (char*)r;
 }
-
 // helper fucntion to get the free memory size 
 int freememsize(void){ 
   int page_count = 0 ; 
@@ -105,5 +104,4 @@ int freememsize(void){
   if (kmem.use_lock) 
     release(&kmem.lock) ; 
 
-  return page_count*PGSIZE ; 
-}
+  return page_count*PGSIZE ; }

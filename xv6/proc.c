@@ -88,7 +88,13 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->blocked_systemcall=-1;
-
+p->priority = 8;
+if(p->pid == 4)
+  p->priority = 8;
+else if(p->pid == 5)
+  p->priority = 5;
+else if(p->pid == 6)
+  p->priority = 2;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -220,6 +226,55 @@ fork(void)
 
   return pid;
 }
+int clone(void (*fcn)(void*), void *arg, void *stack){
+/*fcn is the fct the new thread will run, arg is the argument passed to the fct, stack is the bottom address of the stack page(it is used bcz the OS doesnt automatically make a separate stack like in fork so the parent must provide one)*/
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+  int user_stack[2];
+  int stack_top;
+//we know a page is a block of memory
+//the stack should be page aligned: it should start exactly at the beginning  of a page(eg 4096, 8192... since one full page in xv6 is 4096 bytes)
+if (((int)stack%PGSIZE)!=0) return -1;
+//should have at least one page available for the stack
+if ((curproc->sz-(int)stack)<PGSIZE) return -1;
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+  np->blocked_systemcall=curproc->blocked_systemcall;
+// created thread share the same address space as the parent: they see the same pages in memory
+  np->pgdir=curproc->pgdir;
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;//we copy first all the registers then we modify the registers that must differ(below)
+  user_stack[0]=0xffffffff;//fake return address because there's no real caller(the thread starts directly at fcn, not through a normal fct call)
+  user_stack[1]=(int)arg; 
+  stack_top=(int)stack+PGSIZE;//bcz stack is at the bottom of the page and we want the top of the child's stack because the stack grows downward in xv6
+  stack_top=stack_top-8;//to reserve 8 bytes for the 2 integers(which are user_stack[0] and user_stack[1]) that we want to place there
+  copyout(np->pgdir,stack_top,user_stack,8);//copy(from kernel mmeory to user memory, hence copyout) these 2 integers into the child's stack_top address
+  np->tf->eip=(uint)fcn;//eip is the instruction pointer which tells the cpu which fct to start executing(here fcn)
+  np->tf->esp=stack_top;//esp points to the top of the stack, can go up and down
+  np->tf->ebp=stack_top;//it is the base pointer to tell the fct where its stack frame starts
+  // Clear %eax so that clone returns 0 (like in fork())
+  np->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name)); 
+pid = np->pid;
+
+  acquire(&ptable.lock);
+
+  np->state = RUNNABLE;
+
+  release(&ptable.lock);
+
+  return np->pid;
+}
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -283,6 +338,9 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
+      //if this child shares same address space, it is a thread we so skip it for join to take care of it
+      if(p->pgdir==curproc->pgdir)
+         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
@@ -311,6 +369,45 @@ wait(void)
   }
 }
 
+int join(void){
+ struct proc *p;
+  int havethreads, pid;
+  struct proc *curproc = myproc();
+  
+  acquire(&ptable.lock);
+  for(;;){
+    havethreads = 0;//to check whether the current process has any child threads
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)//thread must have current process as parent
+        continue;
+     if (p->pgdir!=curproc->pgdir) continue;//thread must share the same address space with the current process
+      havethreads=1;
+      if(p->state == ZOMBIE){//cild thread finished execution
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any child thread or current process was killed
+    if(!havethreads || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+ // sleep until one of the child threads exits and becomes zombie
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -319,6 +416,73 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+void
+scheduler(void)
+{
+  struct proc *p;
+  struct proc *chosen;//pointer to the process selected by priority scheduling
+
+  struct cpu *c = mycpu();
+
+  int min_priority;//to store the min priority among runnable processes
+  int indices[NPROC];//to store indices of runnable processes with the min priority. reinitialized with every scheduler call
+  int count;//nb of processes having the min priority
+  int i; 
+ static int round_robin_index=0;//static since need to preserve its value across different  scheduler calls
+ 
+  c->proc = 0;
+  
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+   chosen=0;//since no process selected yet
+    count=0;
+    min_priority=10000000;
+
+
+   //to find the min priority among runnable processes:
+   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+     if(p->state == RUNNABLE){
+         if (p->priority<min_priority){
+            min_priority=p->priority;}}}
+  //to collect all processes whose priority equals the min priority
+   for(i=0; i<NPROC; i++){ 
+  if(ptable.proc[i].state==RUNNABLE && ptable.proc[i].priority==min_priority){ 
+    indices[count]=i; 
+    count++;
+  }
+}
+//if only one process has the min priority, we choose it
+if(count==1){
+  chosen = &ptable.proc[indices[0]];
+}
+//if several processes have this priority, we choose among them using round robin
+else if(count>1){
+   chosen = &ptable.proc[indices[round_robin_index%count]];
+  round_robin_index=(round_robin_index+1)%count;
+}
+//we run only the selected process
+  if (chosen!=0){//we found a process to run
+     c->proc=chosen;
+     static int debug_count= 0;
+if(chosen->pid == 4||chosen->pid==5||chosen->pid==6)
+  cprintf("count=%d chosen PID=%d Priority=%d\n", count, chosen->pid, chosen->priority);
+      switchuvm(chosen);
+      chosen->state=RUNNING;
+      swtch(&(c->scheduler), chosen->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+
+  }
+}
+/*
 void
 scheduler(void)
 {
@@ -353,7 +517,7 @@ scheduler(void)
     release(&ptable.lock);
 
   }
-}
+}*/
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
@@ -532,7 +696,6 @@ procdump(void)
     cprintf("\n");
   }
 }
-
 // Added this helper function 
 void getproccounts(sysinfo_t * info){
 

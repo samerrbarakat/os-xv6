@@ -68,8 +68,7 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
-int             freememsize(void) ; 
-// adding new helper function from kalloc 
+int             freememsize(void);
 
 // kbd.c
 void            kbdintr(void);
@@ -122,9 +121,9 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-// Added this in proc.c 
-
 void getproccounts(sysinfo_t *info);
+int clone(void (*fcn)(void *), void *arg, void *stack);
+int join(void);
 // swtch.S
 void            swtch(struct context**, struct context*);
 

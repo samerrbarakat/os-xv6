@@ -6,6 +6,22 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+extern int total_syscalls;
+extern int syscall_counter[];
+int sys_gettotalsyscalls(void){
+  return total_syscalls;
+}
+int sys_getsyscallcount(void){
+   int num;
+   if(argint(0, &num) < 0)
+    return -1;
+   return syscall_counter[num];}
+int sys_restrict_systemcall(void){
+  int num;
+  if (argint(0,&num)<0) return -1;
+  myproc()->blocked_systemcall=num;
+  return 0;
+}
 int 
 sys_getsysinfo(void) 
 {
@@ -22,24 +38,19 @@ sys_getsysinfo(void)
   getproccounts(st);
 return 0 ;
 } 
-
-
-extern int total_syscalls;
-extern int syscall_counter[];
-int sys_gettotalsyscalls(void){
-  return total_syscalls;
-}
-int sys_getsyscallcount(void){
-   int num;
-   if(argint(0, &num) < 0)
+int sys_clone(void){
+  void *fcn;
+  void *arg;
+  void *stack;
+  if(argptr(0, (void *)&fcn, sizeof(void *))<0)
     return -1;
-   return syscall_counter[num];}
-int sys_restrict_systemcall(void){
-  int num;
-  if (argint(0,&num)<0) return -1;
-  myproc()->blocked_systemcall=num;
-  return 0;
-} 
+  if(argptr(1, (void *)&arg, sizeof(void *))<0)
+    return -1;
+  if(argptr(2, (void *)&stack, sizeof(void *))<0)
+    return -1;
+  return clone((void (*)(void *))fcn, arg, stack);
+}
+int sys_join(void){ return join();} 
 int
 sys_getyear(void)
 {

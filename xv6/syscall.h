@@ -24,5 +24,6 @@
 #define SYS_gettotalsyscalls 23
 #define SYS_getsyscallcount 24
 #define SYS_restrict_systemcall 25
-#define SYS_getsysinfo 26
-
+#define SYS_clone 26
+#define SYS_join 27
+#define SYS_getsysinfo 28

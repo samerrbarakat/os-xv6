@@ -186,14 +186,16 @@ UPROGS=\
        _testrestrict\
        _testrestrict2\
        _testforkrestrict\
-		_sysinfotest\
-		_login\
-		_chnguser\
-		_chngpass\
+      _loop1\
+      _loop2\
+      _test_round_robin\
+      _test_min_priority\
+      _test_clone\
+      _test_clone2\
+      _sysinfotest\
 
-
-fs.img: mkfs README users.txt $(UPROGS)
-	./mkfs fs.img README users.txt $(UPROGS)
+fs.img: mkfs README $(UPROGS)
+	./mkfs fs.img README $(UPROGS)
 
 -include *.d
 

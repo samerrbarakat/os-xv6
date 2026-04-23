@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+
 // system calls
 int fork(void);
 int exit(void) __attribute__((noreturn));
@@ -24,8 +25,9 @@ int sleep(int);
 int uptime(void);
 int gettotalsyscalls(void);
 int getsyscallcount(int num);
+int clone(void (*fcn)(void *), void *arg, void *stack);
+int join(void);
 int getsysinfo(sysinfo_t*);
-
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
