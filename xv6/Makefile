@@ -181,21 +181,24 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-        _getyeartest\
-       _testsyscalls\
-       _testrestrict\
-       _testrestrict2\
-       _testforkrestrict\
-      _loop1\
-      _loop2\
-      _test_round_robin\
-      _test_min_priority\
-      _test_clone\
-      _test_clone2\
-      _sysinfotest\
+	_getyeartest\
+	_testsyscalls\
+	_testrestrict\
+	_testrestrict2\
+	_testforkrestrict\
+	_test_clone\
+	_sysinfotest\
+	_login\
+	_chnguser\
+	_chngpass\
+	_tree\
+	_diff\
+	_split\
+	_find\
+	_search
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs users.txt splittest.txt  test1.txt test2.txt $(UPROGS)
+	./mkfs fs.img users.txt splittest.txt test1.txt test2.txt $(UPROGS)
 
 -include *.d
 
