@@ -1,0 +1,5 @@
+hello
+earth
+the sky is green
+xv6 is cool
+same line here

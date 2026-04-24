@@ -13,6 +13,13 @@
 
 #define MAXARGS 10
 
+// history 
+#define MAX_HIST 12
+#define MAX_CMD_LEN 100 // the length of the cmd 
+
+char history[MAX_HIST][MAX_CMD_LEN];
+int hist_count = 0 ; 
+
 struct cmd {
   int type;
 };
@@ -157,9 +164,28 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+    buf[strlen(buf)-1] = 0;  // chop \n
+    // we need to remove trailing ' '
+    int ln = strlen(buf);
+    while(ln>0 && buf[ln-1]==' '){
+      buf[ln-1]='\0'; ln--;
+    }
+    // we check for the history command 
+    if (strcmp(buf,"history")==0){
+      
+      // only print as many as we have, capped at MAX_HIST
+      int t = hist_count < MAX_HIST? hist_count :MAX_HIST ;
+      // if we wrapped around, start from the oldest slot
+      int s = hist_count< MAX_HIST? 0 : hist_count%MAX_HIST;
+      for(int i = 0 ; i< t ; i++){
+        printf(1, "%d: %s\n", i+1, history[(s+i)%MAX_HIST]);      }
+      continue;
+
+    }
+    memmove(history[hist_count%MAX_HIST],buf,strlen(buf)+1);
+    hist_count++ ; 
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
-      buf[strlen(buf)-1] = 0;  // chop \n
       if(chdir(buf+3) < 0)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
@@ -170,6 +196,7 @@ main(void)
   }
   exit();
 }
+
 
 void
 panic(char *s)

@@ -416,73 +416,73 @@ int join(void){
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc *p;
-  struct proc *chosen;//pointer to the process selected by priority scheduling
+// void
+// scheduler(void)
+// {
+//   struct proc *p;
+//   struct proc *chosen;//pointer to the process selected by priority scheduling
 
-  struct cpu *c = mycpu();
+//   struct cpu *c = mycpu();
 
-  int min_priority;//to store the min priority among runnable processes
-  int indices[NPROC];//to store indices of runnable processes with the min priority. reinitialized with every scheduler call
-  int count;//nb of processes having the min priority
-  int i; 
- static int round_robin_index=0;//static since need to preserve its value across different  scheduler calls
+//   int min_priority;//to store the min priority among runnable processes
+//   int indices[NPROC];//to store indices of runnable processes with the min priority. reinitialized with every scheduler call
+//   int count;//nb of processes having the min priority
+//   int i; 
+//  static int round_robin_index=0;//static since need to preserve its value across different  scheduler calls
  
-  c->proc = 0;
+//   c->proc = 0;
   
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-   chosen=0;//since no process selected yet
-    count=0;
-    min_priority=10000000;
+//   for(;;){
+//     // Enable interrupts on this processor.
+//     sti();
+//     // Loop over process table looking for process to run.
+//     acquire(&ptable.lock);
+//    chosen=0;//since no process selected yet
+//     count=0;
+//     min_priority=10000000;
 
 
-   //to find the min priority among runnable processes:
-   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-     if(p->state == RUNNABLE){
-         if (p->priority<min_priority){
-            min_priority=p->priority;}}}
-  //to collect all processes whose priority equals the min priority
-   for(i=0; i<NPROC; i++){ 
-  if(ptable.proc[i].state==RUNNABLE && ptable.proc[i].priority==min_priority){ 
-    indices[count]=i; 
-    count++;
-  }
-}
-//if only one process has the min priority, we choose it
-if(count==1){
-  chosen = &ptable.proc[indices[0]];
-}
-//if several processes have this priority, we choose among them using round robin
-else if(count>1){
-   chosen = &ptable.proc[indices[round_robin_index%count]];
-  round_robin_index=(round_robin_index+1)%count;
-}
-//we run only the selected process
-  if (chosen!=0){//we found a process to run
-     c->proc=chosen;
-     static int debug_count= 0;
-if(chosen->pid == 4||chosen->pid==5||chosen->pid==6)
-  cprintf("count=%d chosen PID=%d Priority=%d\n", count, chosen->pid, chosen->priority);
-      switchuvm(chosen);
-      chosen->state=RUNNING;
-      swtch(&(c->scheduler), chosen->context);
-      switchkvm();
+//    //to find the min priority among runnable processes:
+//    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+//      if(p->state == RUNNABLE){
+//          if (p->priority<min_priority){
+//             min_priority=p->priority;}}}
+//   //to collect all processes whose priority equals the min priority
+//    for(i=0; i<NPROC; i++){ 
+//   if(ptable.proc[i].state==RUNNABLE && ptable.proc[i].priority==min_priority){ 
+//     indices[count]=i; 
+//     count++;
+//   }
+// }
+// //if only one process has the min priority, we choose it
+// if(count==1){
+//   chosen = &ptable.proc[indices[0]];
+// }
+// //if several processes have this priority, we choose among them using round robin
+// else if(count>1){
+//    chosen = &ptable.proc[indices[round_robin_index%count]];
+//   round_robin_index=(round_robin_index+1)%count;
+// }
+// //we run only the selected process
+//   if (chosen!=0){//we found a process to run
+//      c->proc=chosen;
+//      static int debug_count= 0;
+// if(chosen->pid == 4||chosen->pid==5||chosen->pid==6)
+//   cprintf("count=%d chosen PID=%d Priority=%d\n", count, chosen->pid, chosen->priority);
+//       switchuvm(chosen);
+//       chosen->state=RUNNING;
+//       swtch(&(c->scheduler), chosen->context);
+//       switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
-    release(&ptable.lock);
+//       // Process is done running for now.
+//       // It should have changed its p->state before coming back.
+//       c->proc = 0;
+//     }
+//     release(&ptable.lock);
 
-  }
-}
-/*
+//   }
+// }
+
 void
 scheduler(void)
 {
@@ -517,8 +517,7 @@ scheduler(void)
     release(&ptable.lock);
 
   }
-}*/
-
+}
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this

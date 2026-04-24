@@ -1,0 +1,6 @@
+hello
+world
+the sky is blue
+xv6 is cool
+same line here
+goodbye

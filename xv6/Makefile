@@ -197,9 +197,8 @@ UPROGS=\
 	_find\
 	_search
 
-fs.img: mkfs users.txt splittest.txt  test1.txt test2.txt $(UPROGS)
+fs.img: mkfs users.txt splittest.txt test1.txt test2.txt $(UPROGS)
 	./mkfs fs.img users.txt splittest.txt test1.txt test2.txt $(UPROGS)
-
 -include *.d
 
 clean: 
